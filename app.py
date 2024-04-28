@@ -1,139 +1,113 @@
-from flask import Flask, render_template, request, send_from_directory
-import threading
-import os
+import streamlit as st
 import speech_recognition as sr
 from happytransformer import HappyTextToText, TTSettings
-
-app = Flask(__name__)
+global change_count
+change_count = 0
 
 def listen_and_save_text():
-    # Initialize recognizer
+    global change_count
     recognizer = sr.Recognizer()
-
-    # Use default microphone as audio source
     with sr.Microphone() as source:
-        print("Listening...")
-
-        # Adjust for ambient noise
+        st.write("Listening...")
         recognizer.adjust_for_ambient_noise(source)
-
-        # Listen for user input
         audio = recognizer.listen(source)
 
         try:
-            print("Recognizing speech...")
-            # Recognize speech using Google Web Speech API
+            st.write("Recognizing speech...")
             text = recognizer.recognize_google(audio)
-            print("You said:", text)
+            st.write("You said:", text)
 
-            # Save recognized text to a file
             filename = "speech_output.txt"
             with open(filename, "w") as file:
                 file.write(text)
-            print("Speech saved to", filename)
-
-            return filename, text
+            st.write("Speech saved to", filename)
 
         except sr.UnknownValueError:
-            print("Sorry, could not understand audio.")
-            return None, None
+            st.write("Sorry, could not understand audio.")
         except sr.RequestError as e:
-            print("Error:", e)
-            return None, None
+            st.write("Error:", e)
 
 def grammar_checker(file_path):
-    # Function to read text from a .txt file
+    global change_count
+
     def read_text_from_file(file_path):
         with open(file_path, 'r') as file:
             text = file.read()
         return text
 
-    # Function to save text to a .txt file
     def save_text_to_file(text, filename):
         with open(filename, "w") as file:
             file.write(text)
-        print("Corrected text saved to", filename)
+        st.write("Corrected text saved to", filename)
 
-    # Initialize HappyTextToText with T5 model and grammar correction model
     happy_tt = HappyTextToText("T5", "vennify/t5-base-grammar-correction")
-
-    # Set TTSettings for generation
     args = TTSettings(num_beams=5, min_length=1)
 
-    # Read text from the file
     input_text = read_text_from_file(file_path)
 
-    # Generate corrected text using the grammar correction model
     corrected_text = happy_tt.generate_text("grammar: " + input_text, args=args).text
 
-    # Save corrected text to a .txt file
+    error_count = corrected_text.count("ERROR")
+
     corrected_file_path = "corrected_text.txt"
-    save_text_to_file(corrected_text, corrected_file_path)
 
-    # Print the corrected text and error count
-    print("Corrected Text:")
-    print(corrected_text)
+    if error_count > 0:
+        save_text_to_file(corrected_text, corrected_file_path)
+        st.write("Corrected Text:")
+        st.write(corrected_text)
+        st.write("Number of grammatical errors:", error_count)
+    else:
+        st.write("No grammatical errors found.")
+        st.write("Number of grammatical errors:", error_count)
+
     return corrected_text
-
 def count_changes(original_file_path, corrected_file_path):
-    # Read text from the original file
+    global change_count
+
     with open(original_file_path, 'r') as file:
         original_text = file.read().split()
 
-    # Read text from the corrected file
     with open(corrected_file_path, 'r') as file:
         corrected_text = file.read().split()
     total_words = len(corrected_text)
-    print(f"total number of words :{total_words}")
-    # Define special characters to ignore
+    st.write(f"Total number of words: {total_words}")
+
     special_characters = ['?', '.', '!', ',', ';']
 
-    # Count the number of changes
-    change_count = 0
-    change_details = []  # Store details of each change
-    
+    change_details = []
+
     for original_word, corrected_word in zip(original_text, corrected_text):
-        # Ignore special characters
         if original_word in special_characters or corrected_word in special_characters:
             continue
-        
-        # Convert words to lowercase for comparison
+
         original_word_lower = original_word.lower()
         corrected_word_lower = corrected_word.lower()
 
-        # Ignore changes caused by converting lowercase to uppercase
         if original_word_lower == corrected_word_lower:
             continue
 
-        # Increment change_count for other changes
         change_count += 1
-
-        # Add the identified change details to the list
         change_details.append(f"Change identified: Original '{original_word}' -> Corrected '{corrected_word}'")
 
-    # Save the count of changes to error.txt
-    with open("error.txt", "w") as error_file:
-        error_file.write(f"{change_count}")
-    return change_count
+    if change_count > 0:
+        with open("error.txt", "w") as error_file:
+            error_file.write(f"{change_count}")
+        return change_count
+    else:
+        st.write("No changes found.")
+        return 0
 
-@app.route('/', methods=['GET', 'POST'])
-def hr_interview():
-    message = ""
-    if request.method == 'POST':
-        if request.form.get('start_interview') == 'Start Interview':
-            threading.Thread(target=start_interview).start()
-            message = "Interview started. Speak now."
-    return render_template('hr_interview.html', message=message)
+def main():
+    st.title("HR Interview")
 
-@app.route('/get_file/<filename>')
-def get_file(filename):
-    return send_from_directory('', filename)
-
-def start_interview():
-    file_path, _ = listen_and_save_text()
-    if file_path:
-        corrected_text = grammar_checker(file_path)
-        count_changes(file_path, "corrected_text.txt")
+    if st.button("Start Interview"):
+        st.title("Why should we hire you for our company")
+        listen_and_save_text()
+        filename = "speech_output.txt"
+        grammar_checker(filename)
+        original_file_path = "speech_output.txt"
+        corrected_file_path = "corrected_text.txt"
+        count_changes(original_file_path, corrected_file_path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    main()
