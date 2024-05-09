@@ -1,3 +1,4 @@
+pyaudio
 streamlit
 SpeechRecognition
 happytransformer
