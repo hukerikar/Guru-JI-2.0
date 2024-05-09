@@ -1,5 +1,4 @@
 pyaudio
-portaudio
 streamlit
 SpeechRecognition
 happytransformer
