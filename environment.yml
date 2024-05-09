@@ -1,4 +1,8 @@
-pyaudio
-streamlit
-happytransformer
-speechrecognition-3
+name: newenv
+channels:
+  - defaults
+dependencies:
+  - opencv
+  - transformers
+  - portaudio
+prefix: C:\Users\Srujan\anaconda3\envs\newenv
