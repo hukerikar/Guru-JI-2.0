@@ -1,11 +1,9 @@
 import streamlit as st
 import speech_recognition as sr
 from happytransformer import HappyTextToText, TTSettings
-global change_count
-change_count = 0
 
+# Function to listen to speech and save text
 def listen_and_save_text():
-    global change_count
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         st.write("Listening...")
@@ -16,7 +14,6 @@ def listen_and_save_text():
             st.write("Recognizing speech...")
             text = recognizer.recognize_google(audio)
             st.write("You said:", text)
-
             filename = "speech_output.txt"
             with open(filename, "w") as file:
                 file.write(text)
@@ -27,9 +24,8 @@ def listen_and_save_text():
         except sr.RequestError as e:
             st.write("Error:", e)
 
+# Function to perform grammar correction
 def grammar_checker(file_path):
-    global change_count
-
     def read_text_from_file(file_path):
         with open(file_path, 'r') as file:
             text = file.read()
@@ -42,7 +38,6 @@ def grammar_checker(file_path):
 
     happy_tt = HappyTextToText("T5", "vennify/t5-base-grammar-correction")
     args = TTSettings(num_beams=5, min_length=1)
-
     input_text = read_text_from_file(file_path)
 
     corrected_text = happy_tt.generate_text("grammar: " + input_text, args=args).text
@@ -50,64 +45,51 @@ def grammar_checker(file_path):
     error_count = corrected_text.count("ERROR")
 
     corrected_file_path = "corrected_text.txt"
+    save_text_to_file(corrected_text, corrected_file_path)
 
-    if error_count > 0:
-        save_text_to_file(corrected_text, corrected_file_path)
-        st.write("Corrected Text:")
-        st.write(corrected_text)
-        st.write("Number of grammatical errors:", error_count)
-    else:
-        st.write("No grammatical errors found.")
-        st.write("Number of grammatical errors:", error_count)
-
+    st.write("Corrected Text:")
+    st.write(corrected_text)
     return corrected_text
-def count_changes(original_file_path, corrected_file_path):
-    global change_count
 
+# Function to count changes between original and corrected text
+def count_changes(original_file_path, corrected_file_path):
     with open(original_file_path, 'r') as file:
         original_text = file.read().split()
-
     with open(corrected_file_path, 'r') as file:
         corrected_text = file.read().split()
     total_words = len(corrected_text)
-    st.write(f"Total number of words: {total_words}")
-
     special_characters = ['?', '.', '!', ',', ';']
-
-    change_details = []
-
+    change_count = 0
+    change_details = []  
     for original_word, corrected_word in zip(original_text, corrected_text):
         if original_word in special_characters or corrected_word in special_characters:
             continue
-
         original_word_lower = original_word.lower()
         corrected_word_lower = corrected_word.lower()
-
         if original_word_lower == corrected_word_lower:
             continue
-
         change_count += 1
         change_details.append(f"Change identified: Original '{original_word}' -> Corrected '{corrected_word}'")
+    with open("error.txt", "w") as error_file:
+        error_file.write(f"{change_count}")
+    st.write(change_details)
+    return change_count
 
-    if change_count > 0:
-        with open("error.txt", "w") as error_file:
-            error_file.write(f"{change_count}")
-        return change_count
-    else:
-        st.write("No changes found.")
-        return 0
-
+# Streamlit UI
 def main():
-    st.title("HR Interview")
+    st.title("Speech-to-Text and Grammar Correction")
+    st.write("This app listens to your speech, saves it to a file, performs grammar correction, and counts changes.")
 
-    if st.button("Start Interview"):
-        st.title("Why should we hire you for our company")
+    if st.button("Start Speech Recognition"):
         listen_and_save_text()
-        filename = "speech_output.txt"
-        grammar_checker(filename)
-        original_file_path = "speech_output.txt"
-        corrected_file_path = "corrected_text.txt"
-        count_changes(original_file_path, corrected_file_path)
 
-if __name__ == '__main__':
+    file_path = "speech_output.txt"
+    corrected_text = grammar_checker(file_path)
+
+    original_file_path = "speech_output.txt"
+    corrected_file_path = "corrected_text.txt"
+    num_changes = count_changes(original_file_path, corrected_file_path)
+    st.write("Total Grammatical Error :", num_changes)
+
+if __name__ == "__main__":
     main()
