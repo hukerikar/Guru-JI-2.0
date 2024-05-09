@@ -1,4 +1,4 @@
+pyaudio==0.2.14
 streamlit
 SpeechRecognition
 happytransformer
-pyaudio
