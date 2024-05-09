@@ -1,0 +1,10 @@
+Can you explain the difference between analog and digital signals, and provide examples of each?
+How do you design a basic electronic circuit to amplify a signal?
+What is the purpose of modulation in telecommunications, and can you explain the difference between AM and FM modulation?
+Can you describe the operation of common electronic components such as resistors, capacitors, and transistors?
+What is the Nyquist theorem, and how does it relate to sampling in digital signal processing?
+How do you calculate the bandwidth of a communication system, and why is it important?
+Can you explain the concept of feedback in electronic circuits, and its significance in amplifier design?
+What are the different types of filters used in signal processing, and how do they differ in their frequency response?
+How do you troubleshoot common problems in electronic circuits, such as short circuits or open circuits?
+Can you discuss the principles behind wireless communication technologies such as Wi-Fi and Bluetooth, and how they operate?
